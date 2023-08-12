@@ -88,7 +88,7 @@
         .tomato { background-color: tomato; }
         .potato { background-color: sienna; }
         .wheat { background-color: wheat; }
-        .rice { background-color: beige; }
+        .rice { background-color: #e0e0b5; }
         .cotton { background-color: lightgray; }
         .carrot { background-color: orange; }
         .onion { background-color: yellow; }
@@ -194,6 +194,7 @@
 <body>
     <h1>Palia Farm Creator</h1>
     <button id="saveLayout">Save Current Layout</button>
+    <button id="clearAll">Clear All</button>
 
     <div id="toast" class="toast">
         Layout saved! Copy and share the URL to load this layout.
@@ -210,9 +211,7 @@
     </div>
 
     <!-- Error box -->
-    <div id="errorBox">
-        Your farm plot has some errors. Please check the guidelines!
-    </div>
+    <div id="errorBox"></div>
 
     <script>
         const items = [
@@ -221,7 +220,7 @@
             {name: 'tomato', color: '#FF6347'}, // tomato
             {name: 'potato', color: '#A0522D'}, // sienna
             {name: 'wheat', color: '#F5DEB3'}, // wheat
-            {name: 'rice', color: '#F5F5DC'}, // beige
+            {name: 'rice', color: '#e0e0b5'}, // beige
             {name: 'cotton', color: '#D3D3D3'}, // lightgray
             {name: 'carrot', color: '#FFA500'}, // orange
             {name: 'onion', color: '#FFFF00'} // yellow
@@ -273,15 +272,6 @@
                 // Initially set the tooltip to hidden.
                 tooltip.style.visibility = "hidden";
             }
-        }
-
-        function lightenColor(color, percent) {
-            var num = parseInt(color.replace("#",""), 16),
-                amt = Math.round(2.55 * percent),
-                R = (num >> 16) + amt,
-                G = (num >> 8 & 0x00FF) + amt,
-                B = (num & 0x0000FF) + amt;
-            return "#" + (1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1).toUpperCase();
         }
 
         const legend = document.querySelector('.legend');
@@ -376,9 +366,20 @@
             const errorBox = document.getElementById('errorBox');
             
             if (!validationResult.isValid) {
-                errorBox.textContent = validationResult.messages.join(' ');
+                while (errorBox.firstChild) {
+                    errorBox.removeChild(errorBox.firstChild);
+                }
+                
+                validationResult.messages.forEach(message => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.textContent = message;
+                    errorBox.appendChild(messageDiv);
+                });
                 errorBox.style.display = 'block';
             } else {
+                while (errorBox.firstChild) {
+                    errorBox.removeChild(errorBox.firstChild);
+                }
                 errorBox.textContent = '';
                 errorBox.style.display = 'none';
             }
@@ -433,6 +434,19 @@
             const toast = document.getElementById('toast');
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);  // Auto-hide after 3 seconds
+        });
+
+        document.getElementById('clearAll').addEventListener('click', function() {
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    const cell = table.rows[i].cells[j];
+                    cell.className = '';
+                    const tooltip = cell.querySelector('.tooltip');
+                    tooltip.textContent = '';
+                    tooltip.style.visibility = 'hidden'; // Hide tooltip immediately when cleared
+                    cell.style.removeProperty('--hover-color');
+                }
+            }
         });
 
         // Close button for toast
