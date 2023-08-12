@@ -369,7 +369,7 @@
                 while (errorBox.firstChild) {
                     errorBox.removeChild(errorBox.firstChild);
                 }
-                
+
                 validationResult.messages.forEach(message => {
                     const messageDiv = document.createElement('div');
                     messageDiv.textContent = message;
@@ -447,6 +447,13 @@
                     cell.style.removeProperty('--hover-color');
                 }
             }
+
+            const errorBox = document.getElementById('errorBox');
+            while (errorBox.firstChild) {
+                errorBox.removeChild(errorBox.firstChild);
+            }
+            errorBox.textContent = '';
+            errorBox.style.display = 'none';
         });
 
         // Close button for toast
