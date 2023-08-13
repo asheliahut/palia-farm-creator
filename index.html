@@ -13,6 +13,13 @@
             --primary-text: #5c5c5c;
             --secondary-text: #8f8f8f;
             --accent: #78a7c1;
+            --button-bg: #78a7c1;
+            --button-hover-bg: #5c90a1;
+            --button-active-bg: #4c7c91;
+            --button-text-color: #ffffff;
+            --select-bg: #f9edcc;
+            --select-border-color: #78a7c1;
+            --select-focus-border-color: #5c90a1;
         }
 
         body {
@@ -28,6 +35,43 @@
         h1 {
             margin-bottom: 2rem;
             color: var(--accent);
+        }
+
+        /* Button styles */
+        button {
+            background-color: var(--button-bg);
+            color: var(--button-text-color);
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        button:active {
+            background-color: var(--button-active-bg);
+        }
+
+        /* Dropdown styles */
+        select {
+            padding: 8px 12px;
+            font-size: 1rem;
+            border: 2px solid var(--select-border-color);
+            background-color: var(--select-bg);
+            border-radius: 8px;
+            outline: none;
+            color: var(--primary-text);
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--select-focus-border-color);
         }
 
         #mainContainer {
@@ -193,6 +237,17 @@
 
 <body>
     <h1>Palia Farm Creator</h1>
+    <select id="gridSize">
+        <option value="3x3">3x3</option>
+        <option value="6x3">6x3</option>
+        <option value="9x3">9x3</option>
+        <option value="3x6">3x6</option>
+        <option value="3x9">3x9</option>
+        <option value="6x6">6x6</option>
+        <option value="9x6">9x6</option>
+        <option value="6x9">6x9</option>
+        <option value="9x9" selected>9x9</option>
+    </select>
     <button id="saveLayout">Save Current Layout</button>
     <button id="clearAll">Clear All</button>
 
@@ -210,7 +265,7 @@
         </table>
     </div>
 
-    <!-- Error box -->
+    <!-- Error box toast -->
     <div id="errorBox"></div>
 
     <script>
@@ -229,50 +284,60 @@
         const table = document.getElementById('interactiveTable');
         let selectedItem = null;
 
-        for (let i = 0; i < 9; i++) {
-            const row = table.insertRow();
-            for (let j = 0; j < 9; j++) {
-                const cell = row.insertCell();
-                const tooltip = document.createElement('span');
-                tooltip.className = 'tooltip';
-                cell.appendChild(tooltip);
+        function createGrid(rows, cols) {
+            // Clear any existing cells first
+            while (table.firstChild) {
+                table.removeChild(table.firstChild);
+            }
 
-                cell.addEventListener('mouseover', function() {
-                    if (cell.classList.length > 0) {
-                        tooltip.style.visibility = "visible";
-                    }
+            for (let i = 0; i < rows; i++) {
+                const row = table.insertRow();
+                for (let j = 0; j < cols; j++) {
+                    const cell = row.insertCell();
+                    const tooltip = document.createElement('span');
+                    tooltip.className = 'tooltip';
+                    cell.appendChild(tooltip);
 
-                    if (!selectedItem || this.classList.contains(selectedItem)) return;
-
-                    const selectedItemColor = items.find(item => item.name === selectedItem).color;
-                    this.style.setProperty('--hover-color', selectedItemColor);
-                });
-
-                cell.addEventListener('mouseout', function() {
-                    tooltip.style.visibility = "hidden";
-                    if (this.classList.length === 0) this.style.removeProperty('--hover-color');
-                });
-
-                cell.addEventListener('click', function() {
-                    if (cell.classList.contains(selectedItem)) {
-                        cell.classList.remove(selectedItem);
-                        tooltip.textContent = "";
-                        tooltip.style.visibility = "hidden";  // Hide tooltip immediately when deselected
-                    } else {
-                        cell.className = ''; // Reset previous classes
-                        if (selectedItem) {
-                            cell.classList.add(selectedItem);
-                            tooltip.textContent = selectedItem;
-                            tooltip.style.visibility = "visible";  // Show tooltip immediately upon selection
+                    cell.addEventListener('mouseover', function() {
+                        if (cell.classList.length > 0) {
+                            tooltip.style.visibility = "visible";
                         }
-                    }
-                    cell.style.backgroundColor = "";
-                });
 
-                // Initially set the tooltip to hidden.
-                tooltip.style.visibility = "hidden";
+                        if (!selectedItem || this.classList.contains(selectedItem)) return;
+
+                        const selectedItemColor = items.find(item => item.name === selectedItem).color;
+                        this.style.setProperty('--hover-color', selectedItemColor);
+                    });
+
+                    cell.addEventListener('mouseout', function() {
+                        tooltip.style.visibility = "hidden";
+                        if (this.classList.length === 0) this.style.removeProperty('--hover-color');
+                    });
+
+                    cell.addEventListener('click', function() {
+                        if (cell.classList.contains(selectedItem)) {
+                            cell.classList.remove(selectedItem);
+                            tooltip.textContent = "";
+                            tooltip.style.visibility = "hidden";  // Hide tooltip immediately when deselected
+                        } else {
+                            cell.className = ''; // Reset previous classes
+                            if (selectedItem) {
+                                cell.classList.add(selectedItem);
+                                tooltip.textContent = selectedItem;
+                                tooltip.style.visibility = "visible";  // Show tooltip immediately upon selection
+                            }
+                        }
+                        cell.style.backgroundColor = "";
+                    });
+
+                    // Initially set the tooltip to hidden.
+                    tooltip.style.visibility = "hidden";
+                }
             }
         }
+
+        // initially create a 9x9 grid
+        createGrid(9, 9);
 
         const legend = document.querySelector('.legend');
         items.forEach(item => {
@@ -314,37 +379,32 @@
             let appleCount = 0;
             let blueberryCount = 0;
 
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
-                    const cell = table.rows[i].cells[j];
-                    if (cell.classList.contains('apples')) {
-                        appleCount++;
-                    } 
-                    else if (cell.classList.contains('blueberries')) {
-                        blueberryCount++;
+            forEachCell((i,j) => {
+                const cell = table.rows[i].cells[j];
+                if (cell.classList.contains('apples')) {
+                    appleCount++;
+                } 
+                else if (cell.classList.contains('blueberries')) {
+                    blueberryCount++;
+                }
+            })
+
+            forEachCell((i,j) => {
+                const cell = table.rows[i].cells[j];
+                
+                if (cell.classList.contains('apples') && appleCount >= 9) {
+                    const result = checkForGrid('apples', i, j, 3, 3);
+                    if (result.isValid) {
+                        appleCount -= 9; // A 3x3 grid contains 9 apples
+                    }
+                } 
+                else if (cell.classList.contains('blueberries') && blueberryCount >= 4) {
+                    const result = checkForGrid('blueberries', i, j, 2, 2);
+                    if (result.isValid) {
+                        blueberryCount -= 4; // A 2x2 grid contains 4 blueberries
                     }
                 }
-            }
-
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
-                    const cell = table.rows[i].cells[j];
-                    let result;
-
-                    if (cell.classList.contains('apples') && appleCount >= 9) {
-                        result = checkForGrid('apples', i, j, 3, 3);
-                        if (result.isValid) {
-                            appleCount -= 9; // A 3x3 grid contains 9 apples
-                        }
-                    } 
-                    else if (cell.classList.contains('blueberries') && blueberryCount >= 4) {
-                        result = checkForGrid('blueberries', i, j, 2, 2);
-                        if (result.isValid) {
-                            blueberryCount -= 4; // A 2x2 grid contains 4 blueberries
-                        }
-                    }
-                }
-            }
+            })
 
             const errors = [];
             if (appleCount !== 0) {
@@ -359,6 +419,12 @@
                 messages: errors
             };
         }
+
+        document.getElementById('gridSize').addEventListener('change', function() {
+            const [rows, cols] = this.value.split('x').map(Number);
+            createGrid(rows, cols);
+        });
+
 
 
         table.addEventListener('click', function() {
@@ -387,42 +453,51 @@
 
         // Function to generate a hash from the current layout
         function generateHash() {
-            let layoutString = '';
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
-                    const cell = table.rows[i].cells[j];
-                    if (cell.classList.length === 0) {
-                        layoutString += '-';
-                    } else {
-                        layoutString += cell.classList[0].charAt(0); // We're just taking the first character of the class for simplicity
-                    }
+            let layoutString = table.rows.length + 'x' + table.rows[0].cells.length + '-';
+
+            forEachCell((i, j) => {
+                const cell = table.rows[i].cells[j];
+                if (cell.classList.length === 0) {
+                    layoutString += '-';
+                } else {
+                    layoutString += cell.classList[0].charAt(0);
                 }
-            }
-            // Convert the string to a hashed representation (for simplicity, this won't be encrypted hash)
-            return btoa(layoutString); // using Base64 for this purpose
+            });
+
+            return btoa(layoutString); 
         }
+
 
         // Function to decode the hash and set the layout
         function loadFromHash(hash) {
-            const layoutString = atob(hash); // decode from Base64
+            const layoutString = atob(hash); 
+            const [gridSize, ...layoutParts] = layoutString.split('-');
+            const layout = layoutParts.join('-');
+            const [rows, cols] = gridSize.split('x').map(Number);
+
+            createGrid(rows, cols);
+
+            // Set the select box to the correct size
+            const gridSizeDropdown = document.getElementById('gridSize');
+            gridSizeDropdown.value = `${rows}x${cols}`;
+
             let index = 0;
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
-                    const cell = table.rows[i].cells[j];
-                    const character = layoutString[index];
-                    cell.className = '';
-                    if (character !== '-') {
-                        for (const item of items) {
-                            if (item.name.charAt(0) === character) {
-                                cell.classList.add(item.name);
-                                cell.querySelector('.tooltip').textContent = item.name;
-                                break;
-                            }
+
+            forEachCell((i, j) => {
+                const cell = table.rows[i].cells[j];
+                const character = layout[index];
+                cell.className = '';
+                if (character !== '-') {
+                    for (const item of items) {
+                        if (item.name.charAt(0) === character) {
+                            cell.classList.add(item.name);
+                            cell.querySelector('.tooltip').textContent = item.name;
+                            break;
                         }
                     }
-                    index++;
                 }
-            }
+                index++;
+            });
         }
 
         document.getElementById('saveLayout').addEventListener('click', function() {
@@ -437,16 +512,15 @@
         });
 
         document.getElementById('clearAll').addEventListener('click', function() {
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
-                    const cell = table.rows[i].cells[j];
-                    cell.className = '';
-                    const tooltip = cell.querySelector('.tooltip');
-                    tooltip.textContent = '';
-                    tooltip.style.visibility = 'hidden'; // Hide tooltip immediately when cleared
-                    cell.style.removeProperty('--hover-color');
-                }
-            }
+
+            forEachCell((i, j) => {
+                const cell = table.rows[i].cells[j];
+                cell.className = '';
+                const tooltip = cell.querySelector('.tooltip');
+                tooltip.textContent = '';
+                tooltip.style.visibility = 'hidden'; // Hide tooltip immediately when cleared
+                cell.style.removeProperty('--hover-color');
+            });
 
             const errorBox = document.getElementById('errorBox');
             while (errorBox.firstChild) {
@@ -460,6 +534,14 @@
         document.getElementById('closeToast').addEventListener('click', function() {
             document.getElementById('toast').classList.remove('show');
         });
+
+        function forEachCell(callback) {
+            for (let i = 0; i < table.rows.length; i++) {
+                for (let j = 0; j < table.rows[i].cells.length; j++) {
+                    callback(i, j);
+                }
+            }
+        }
 
         // On page load, check for the hash and load layout if present
         const params = new URLSearchParams(window.location.search);
