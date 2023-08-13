@@ -7,7 +7,25 @@
     <title>Palia Farm Creator</title>
     <style>
         /* Colors for the palette */
+        /* Light theme */
         :root {
+            /* Dark mode colors */
+            --primary-bg: #2e3a4c; /* Changed to a slightly bluish shade for depth */
+            --secondary-bg: #1a2436; /* Made it slightly darker than primary */
+            --primary-text: #e0e6f0; /* Retained for clarity */
+            --secondary-text: #b0bac8; /* Slight blueish tinge */
+            --accent: #ff7e67; /* Vibrant orange to contrast the blues */
+            --button-bg: #ff7e67; /* Same vibrant orange for buttons */
+            --button-hover-bg: #ff6450; /* Darker shade on hover */
+            --button-active-bg: #ff5738; /* Even darker on active */
+            --button-text-color: #1a2436; /* Text color from secondary-bg for contrast */
+            --select-bg: #3a4560; /* Slightly lighter than primary, offers a pleasant look */
+            --select-border-color: #ff7e67; /* Using the accent color for borders */
+            --select-focus-border-color: #ff5738; /* A more emphasized state for focus */
+        }
+
+        /* Light theme */
+        [data-theme="light"] {
             --primary-bg: #faf3e0;
             --secondary-bg: #f9edcc;
             --primary-text: #5c5c5c;
@@ -37,16 +55,29 @@
             color: var(--accent);
         }
 
-        /* Button styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            background-color: var(--secondary-bg);
+            padding: 0.5rem;
+            box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Re-styling the buttons a bit to fit better in the header */
         button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
             background-color: var(--button-bg);
             color: var(--button-text-color);
-            border: none;
-            padding: 10px 20px;
-            font-size: 1rem;
-            margin: 5px;
             cursor: pointer;
-            border-radius: 20px;
             transition: background-color 0.2s;
         }
 
@@ -57,6 +88,7 @@
         button:active {
             background-color: var(--button-active-bg);
         }
+
 
         /* Dropdown styles */
         select {
@@ -236,20 +268,28 @@
 </head>
 
 <body>
-    <h1>Palia Farm Creator</h1>
-    <select id="gridSize">
-        <option value="3x3">3x3</option>
-        <option value="6x3">6x3</option>
-        <option value="9x3">9x3</option>
-        <option value="3x6">3x6</option>
-        <option value="3x9">3x9</option>
-        <option value="6x6">6x6</option>
-        <option value="9x6">9x6</option>
-        <option value="6x9">6x9</option>
-        <option value="9x9" selected>9x9</option>
-    </select>
-    <button id="saveLayout">Save Current Layout</button>
-    <button id="clearAll">Clear All</button>
+    <header id="pageHeader">
+        <h1>Palia Farm Creator</h1>
+        <div class="header-buttons">
+            <select id="gridSize">
+                <option value="3x3">3x3</option>
+                <option value="6x3">6x3</option>
+                <option value="9x3">9x3</option>
+                <option value="3x6">3x6</option>
+                <option value="3x9">3x9</option>
+                <option value="6x6">6x6</option>
+                <option value="9x6">9x6</option>
+                <option value="6x9">6x9</option>
+                <option value="9x9" selected>9x9</option>
+            </select>
+            <button id="clearAll">Clear All</button>
+            <button id="saveLayout">Save Current Layout</button>
+            <button id="toggleTheme">Toggle Light Mode</button>
+        </div>
+    </header>
+
+    <br />
+    
 
     <div id="toast" class="toast">
         Layout saved! Copy and share the URL to load this layout.
@@ -542,6 +582,18 @@
                 }
             }
         }
+        
+        const toggleButton = document.getElementById('toggleTheme');
+        toggleButton.addEventListener('click', () => {
+            if (document.documentElement.getAttribute('data-theme') === 'light') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                toggleButton.textContent = 'Toggle Light Mode';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                toggleButton.textContent = 'Toggle Dark Mode';
+            }
+    });
+        
 
         // On page load, check for the hash and load layout if present
         const params = new URLSearchParams(window.location.search);
