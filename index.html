@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Palia Farm Creator</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <style>
         /* Colors for the palette */
         /* Light theme */
@@ -53,6 +55,8 @@
         h1 {
             margin-bottom: 2rem;
             color: var(--accent);
+            font-family: 'Pacifico', cursive; /* Set the font */
+            font-size: 4rem; /* Adjust the size as required */
         }
 
         header {
@@ -131,6 +135,31 @@
             position: relative;
             transition: transform 0.2s;
         }
+
+        /* For screens wider than 768px */
+        @media (min-width: 768px) {
+            td {
+                width: 53px;
+                height: 53px;
+            }
+        }
+
+        /* For screens wider than 1024px */
+        @media (min-width: 1024px) {
+            td {
+                width: 65px;
+                height: 65px;
+            }
+        }
+
+        /* For screens wider than 1200px */
+        @media (min-width: 1200px) {
+            td {
+                width: 80px;
+                height: 80px;
+            }
+        }
+
 
         /* Inside the <style> tag */
         td::before {
