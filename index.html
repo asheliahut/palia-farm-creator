@@ -56,7 +56,7 @@
             margin-bottom: 2rem;
             color: var(--accent);
             font-family: 'Pacifico', cursive; /* Set the font */
-            font-size: 4rem; /* Adjust the size as required */
+            font-size: 3.5rem; /* Adjust the size as required */
         }
 
         header {
@@ -203,19 +203,43 @@
             visibility: hidden;
             position: absolute;
             z-index: 1;
-            bottom: 100%;
+            bottom: calc(100% + 10px); /* position tooltip 10px above the cell */
             left: 50%;
             transform: translateX(-50%);
-            background-color: #555;
+            background-color: #2a2a2a; /* slightly darker background for better contrast */
             color: #fff;
             text-align: center;
             border-radius: 6px;
-            padding: 5px;
-            font-size: 12px;
+            padding: 8px 10px; /* slightly increased padding */
+            font-size: 18px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2); /* subtle shadow for depth */
+            transition: opacity 0.3s ease; /* smooth transition for tooltip appearance */
+            opacity: 0; /* starting with opacity for smoother transition */
+            white-space: nowrap; /* prevent wrapping */
+        }
+
+        .tooltip::after {
+            /* Add arrow to the tooltip */
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2a2a2a transparent transparent transparent;
         }
 
         td:hover .tooltip {
             visibility: visible;
+            opacity: 1; /* make it fully visible on hover */
+        }
+
+        /* Assuming you'll want to add emojis/icons before each effect, you can style it like this */
+        .tooltip .effect {
+            display: inline-block;
+            margin-right: 5px;
+            font-size: 20px; /* slightly bigger font for the icons */
         }
 
         /* Legend styling */
@@ -339,15 +363,15 @@
 
     <script>
         const items = [
-            {name: 'apples', color: '#FF0000'}, // red
-            {name: 'blueberries', color: '#0000FF'}, // blue
-            {name: 'tomato', color: '#FF6347'}, // tomato
-            {name: 'potato', color: '#A0522D'}, // sienna
-            {name: 'wheat', color: '#F5DEB3'}, // wheat
-            {name: 'rice', color: '#e0e0b5'}, // beige
-            {name: 'cotton', color: '#D3D3D3'}, // lightgray
-            {name: 'carrot', color: '#FFA500'}, // orange
-            {name: 'onion', color: '#FFFF00'} // yellow
+            {name: 'apples', color: '#FF0000'},
+            {name: 'blueberries', color: '#0000FF'},
+            {name: 'tomato', color: '#FF6347'},
+            {name: 'potato', color: '#A0522D'},
+            {name: 'wheat', color: '#F5DEB3'},
+            {name: 'rice', color: '#e0e0b5'},
+            {name: 'cotton', color: '#D3D3D3'},
+            {name: 'carrot', color: '#FFA500'},
+            {name: 'onion', color: '#FFFF00'} 
         ];
 
         const boostEffects = {
@@ -361,7 +385,6 @@
             carrot: 'weedPrevention',
             cotton: 'qualityBoost'
         };
-
 
         const table = document.getElementById('interactiveTable');
         let selectedItem = null;
@@ -382,7 +405,7 @@
 
                     cell.addEventListener('mouseover', function() {
                         if (cell.classList.length > 0) {
-                            tooltip.style.visibility = "visible";
+                            showTooltip(tooltip);
                         }
 
                         if (!selectedItem || this.classList.contains(selectedItem)) return;
@@ -392,32 +415,33 @@
                     });
 
                     cell.addEventListener('mouseout', function() {
-                        tooltip.style.visibility = "hidden";
+                        hideTooltip(tooltip);
                         if (this.classList.length === 0) this.style.removeProperty('--hover-color');
                     });
 
                     cell.addEventListener('click', function() {
-                        // clearBoostEffects(this, i, j);
                         if (cell.classList.contains(selectedItem)) {
                             cell.classList.remove(selectedItem);
+                            const tooltip = cell.querySelector('.tooltip');
                             tooltip.textContent = "";
-                            tooltip.style.visibility = "hidden";  // Hide tooltip immediately when deselected
+                            hideTooltip(tooltip);
                         } else {
                             cell.className = ''; // Reset previous classes
                             if (selectedItem) {
                                 cell.classList.add(selectedItem);
-                                tooltip.textContent = selectedItem;
-                                tooltip.style.visibility = "visible";  // Show tooltip immediately upon selection
+                                const tooltip = cell.querySelector('.tooltip');
+                                tooltip.textContent = capitalizeFirstLetter(selectedItem);
+                                showTooltip(tooltip);
                             }
                         }
                         cell.style.backgroundColor = "";
 
-                        // After assigning the item, calculate its effects on adjacent cells.
-                        applyBoostEffects(i, j);
+                        // After making changes, recompute all effects on the grid.
+                        recomputeEffects();
                     });
 
                     // Initially set the tooltip to hidden.
-                    tooltip.style.visibility = "hidden";
+                    hideTooltip(tooltip);
                 }
             }
         }
@@ -446,20 +470,10 @@
             legend.appendChild(legendItem);
         });
 
-        function checkForGrid(itemClass, i, j, width, height) {
-            for (let x = 0; x < width; x++) {
-                for (let y = 0; y < height; y++) {
-                    if (i + x >= 9 || j + y >= 9 || !table.rows[i + x].cells[j + y].classList.contains(itemClass)) {
-                        return { isValid: false };
-                    }
-                }
-            }
-            return { 
-                isValid: true, 
-                maxX: i + width - 1,
-                maxY: j + height - 1
-            };
-        }
+        // get first item from the legend and set it as selected
+        const firstLegendItem = legend.querySelector('div');
+        firstLegendItem.classList.add('selected');
+        selectedItem = firstLegendItem.textContent;
 
         function checkForErrors() {
             let appleCount = 0;
@@ -479,14 +493,12 @@
                 const cell = table.rows[i].cells[j];
                 
                 if (cell.classList.contains('apples') && appleCount >= 9) {
-                    const result = checkForGrid('apples', i, j, 3, 3);
-                    if (result.isValid) {
+                    if (isPartOfAppleOrBlueberryGrid(i, j)) {
                         appleCount -= 9; // A 3x3 grid contains 9 apples
                     }
                 } 
                 else if (cell.classList.contains('blueberries') && blueberryCount >= 4) {
-                    const result = checkForGrid('blueberries', i, j, 2, 2);
-                    if (result.isValid) {
+                    if (isPartOfAppleOrBlueberryGrid(i, j)) {
                         blueberryCount -= 4; // A 2x2 grid contains 4 blueberries
                     }
                 }
@@ -537,90 +549,126 @@
 
         function friendlyEffectDescription(effect) {
             const effectDescriptions = {
-                'growthBoost': 'Growth Boost',
-                'waterRetain': 'Water Retention',
-                'harvestBoost': 'Harvest Boost',
-                'weedPrevention': 'Weed Prevention',
-                'qualityBoost': 'Quality Boost'
-            
+                'growthBoost': '🌱 Growth Boost',
+                'waterRetain': '💧 Water Retention',
+                'harvestBoost': '🍂 Harvest Boost',
+                'weedPrevention': '🍀 Weed Prevention',
+                'qualityBoost': '⭐ Quality Boost'
             };
             
-            return effectDescriptions[effect] || 'Unknown Effect';
+            return effectDescriptions[effect] || '❓ Unknown Effect';
         }
-
 
         // add code for effects
         function applyBoostEffects(i, j) {
             const cell = table.rows[i].cells[j];
             const cellItem = cell.classList[0]; // Assuming only one class
 
-            if (cellItem && boostEffects[cellItem]) {
-                const boostEffect = boostEffects[cellItem];
+            if (!cellItem || !boostEffects[cellItem]) {
+                return;
+            }
 
-                const neighbors = [
-                    (i - 1 >= 0) ? table.rows[i - 1].cells[j] : null, 
-                    (j + 1 < table.rows[i].cells.length) ? table.rows[i].cells[j + 1] : null, 
-                    (j - 1 >= 0) ? table.rows[i].cells[j - 1] : null, 
-                    (i + 1 < table.rows.length) ? table.rows[i + 1].cells[j] : null
-                ];
+            const boostEffect = boostEffects[cellItem];
+            const neighbors = [
+                (i - 1 >= 0) ? table.rows[i - 1].cells[j] : null,
+                (j + 1 < table.rows[i].cells.length) ? table.rows[i].cells[j + 1] : null,
+                (j - 1 >= 0) ? table.rows[i].cells[j - 1] : null,
+                (i + 1 < table.rows.length) ? table.rows[i + 1].cells[j] : null
+            ];
 
-                neighbors.forEach(neighbor => {
-                    if (neighbor) {
-                        // Check for exclusion rules
-                        if (cellItem === 'apples' && boostEffect === 'growthBoost' &&
-                            isWithinGrid(neighbor.rowIndex, neighbor.cellIndex, i-1, i+1, j-1, j+1, 'apples')) {
-                            return;
-                        } else if (cellItem === 'blueberries' && boostEffect === 'growthBoost' &&
-                            isWithinGrid(neighbor.rowIndex, neighbor.cellIndex, i, i+1, j, j+1, 'blueberries')) {
-                            return;
+            neighbors.forEach(neighbor => {
+                if (!neighbor) return;
+                const neighborItem = neighbor.classList[0];
+
+                // Do not apply effects to same items
+                if (cellItem === 'apples' && neighborItem === 'apples') {
+                    return;
+                }
+                if (cellItem === 'blueberries' && neighborItem === 'blueberries') {
+                    return;
+                }
+
+                const tooltip = neighbor.querySelector('.tooltip');
+                const currentEffects = tooltip.dataset.effects ? tooltip.dataset.effects.split(',') : [];
+
+                if (!currentEffects.includes(boostEffect)) {
+                    currentEffects.push(boostEffect);
+                    tooltip.dataset.effects = currentEffects.join(',');
+
+                    // Update tooltip content with user-friendly descriptions
+                    const friendlyEffects = currentEffects.map(effect => friendlyEffectDescription(effect));
+                    tooltip.textContent = `${capitalizeFirstLetter(tooltip.textContent.split(' - ')[0])} - Effects: ${friendlyEffects.join(', ')}`;
+                }
+            });
+        }
+
+
+        function recomputeEffects() {
+            // First, clear all effects from every tooltip
+            for (let i = 0; i < table.rows.length; i++) {
+                for (let j = 0; j < table.rows[i].cells.length; j++) {
+                    const cell = table.rows[i].cells[j];
+                    const tooltip = cell.querySelector('.tooltip');
+                    tooltip.dataset.effects = '';
+                    tooltip.textContent = tooltip.textContent.split(' - ')[0]; // remove effects from the tooltip's text
+                }
+            }
+
+            // Now, loop over each cell and re-apply effects
+            for (let i = 0; i < table.rows.length; i++) {
+                for (let j = 0; j < table.rows[i].cells.length; j++) {
+                    applyBoostEffects(i, j);
+                }
+            }
+        }
+
+        function isPartOfAppleOrBlueberryGrid(i, j) {
+            const cell = table.rows[i]?.cells[j];
+            if (!cell) return false;  // if the cell doesn't exist
+
+            const itemType = cell.classList[0];  // assuming only one class per cell
+
+            if (itemType === 'apples') {
+                // Define the boundaries of a 3x3 grid centered on (i, j)
+                const rowStart = i - 1;
+                const rowEnd = i + 1;
+                const colStart = j - 1;
+                const colEnd = j + 1;
+
+                for (let row = rowStart; row <= rowEnd; row++) {
+                    for (let col = colStart; col <= colEnd; col++) {
+                        if (row < 0 || row >= table.rows.length || col < 0 || col >= table.rows[row].cells.length) {
+                            return false; // if the cell is on the edge and doesn't have a complete 3x3 grid
                         }
-
-                        const tooltip = neighbor.querySelector('.tooltip');
-                        const currentEffects = tooltip.dataset.effects ? tooltip.dataset.effects.split(',') : [];
-
-                        if (!currentEffects.includes(boostEffect)) {
-                            currentEffects.push(boostEffect);
-                            tooltip.dataset.effects = currentEffects.join(',');
-
-                            // Update tooltip content with user-friendly descriptions
-                            const friendlyEffects = currentEffects.map(effect => friendlyEffectDescription(effect));
-                            tooltip.textContent = `${tooltip.textContent} - Effects: ${friendlyEffects.join(', ')}`;
+                        if (!table.rows[row].cells[col].classList.contains('apples')) {
+                            return false; // if any cell in the 3x3 grid is not an apple
                         }
                     }
-                });
+                }
+                return true;  // if all cells in the 3x3 grid are apples
+
+            } else if (itemType === 'blueberries') {
+                // Define the boundaries of a 2x2 grid based on (i, j)
+                const rowEnd = (i % 2 === 0) ? i + 1 : i;
+                const colEnd = (j % 2 === 0) ? j + 1 : j;
+                const rowStart = rowEnd - 1;
+                const colStart = colEnd - 1;
+
+                for (let row = rowStart; row <= rowEnd; row++) {
+                    for (let col = colStart; col <= colEnd; col++) {
+                        if (row < 0 || row >= table.rows.length || col < 0 || col >= table.rows[row].cells.length) {
+                            return false; // if the cell is on the edge and doesn't have a complete 2x2 grid
+                        }
+                        if (!table.rows[row].cells[col].classList.contains('blueberries')) {
+                            return false; // if any cell in the 2x2 grid is not a blueberry
+                        }
+                    }
+                }
+                return true;  // if all cells in the 2x2 grid are blueberries
             }
+
+            return false;  // if cell is neither an apple nor a blueberry or not part of a valid grid
         }
-
-        // We need a function to clear effects for recalculations.
-        // function clearBoostEffects(cell, i, j) {
-        //     const getAdjacentCells = () => {
-        //         return [
-        //             table.rows[i-1]?.cells[j],   // top
-        //             table.rows[i]?.cells[j-1],   // left
-        //             table.rows[i]?.cells[j+1],   // right
-        //             table.rows[i+1]?.cells[j]    // bottom
-        //         ].filter(Boolean);  // Remove undefined cells
-        //     };
-
-        //     const adjacentCells = getAdjacentCells();
-
-        //     Object.keys(boostEffects).forEach(effect => {
-        //         adjacentCells.forEach(adjCell => {
-        //             adjCell.removeAttribute(`data-${effect}`);
-        //             // Optionally: remove the effect from the tooltip
-        //             adjCell.querySelector('.tooltip').textContent = adjCell.querySelector('.tooltip').textContent.replace(` ${effect}`, '');
-        //         });
-        //     });
-        // }
-
-        function isWithinGrid(i, j, gridRowStart, gridRowEnd, gridColStart, gridColEnd, type) {
-            if (i < gridRowStart || i > gridRowEnd || j < gridColStart || j > gridColEnd) {
-                return false;
-            }
-            const cell = table.rows[i].cells[j];
-            return cell.classList.contains(type);
-        }
-
 
 
         // Function to generate a hash from the current layout
@@ -684,13 +732,12 @@
         });
 
         document.getElementById('clearAll').addEventListener('click', function() {
-
             forEachCell((i, j) => {
                 const cell = table.rows[i].cells[j];
                 cell.className = '';
                 const tooltip = cell.querySelector('.tooltip');
                 tooltip.textContent = '';
-                tooltip.style.visibility = 'hidden'; // Hide tooltip immediately when cleared
+                hideTooltip(tooltip);
                 cell.style.removeProperty('--hover-color');
             });
 
@@ -714,6 +761,18 @@
                 }
             }
         }
+
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        function showTooltip(element) {
+            element.style.visibility = "visible";
+        }
+
+        function hideTooltip(element) {
+            element.style.visibility = "hidden";
+        }
         
         const toggleButton = document.getElementById('toggleTheme');
         toggleButton.addEventListener('click', () => {
@@ -724,14 +783,13 @@
                 document.documentElement.setAttribute('data-theme', 'light');
                 toggleButton.textContent = 'Toggle Dark Mode';
             }
-    });
-        
-
+        });
         // On page load, check for the hash and load layout if present
         const params = new URLSearchParams(window.location.search);
         const layoutHash = params.get('layout');
         if (layoutHash) {
             loadFromHash(layoutHash);
+            recomputeEffects();
         }
 
     </script>
