@@ -350,6 +350,19 @@
             {name: 'onion', color: '#FFFF00'} // yellow
         ];
 
+        const boostEffects = {
+            tomato: 'waterRetain',
+            potato: 'waterRetain',
+            wheat: 'harvestBoost',
+            rice: 'harvestBoost',
+            apples: 'growthBoost',
+            blueberries: 'growthBoost',
+            onion: 'weedPrevention',
+            carrot: 'weedPrevention',
+            cotton: 'qualityBoost'
+        };
+
+
         const table = document.getElementById('interactiveTable');
         let selectedItem = null;
 
@@ -384,6 +397,7 @@
                     });
 
                     cell.addEventListener('click', function() {
+                        // clearBoostEffects(this, i, j);
                         if (cell.classList.contains(selectedItem)) {
                             cell.classList.remove(selectedItem);
                             tooltip.textContent = "";
@@ -397,6 +411,9 @@
                             }
                         }
                         cell.style.backgroundColor = "";
+
+                        // After assigning the item, calculate its effects on adjacent cells.
+                        applyBoostEffects(i, j);
                     });
 
                     // Initially set the tooltip to hidden.
@@ -494,8 +511,6 @@
             createGrid(rows, cols);
         });
 
-
-
         table.addEventListener('click', function() {
             const validationResult = checkForErrors();
             const errorBox = document.getElementById('errorBox');
@@ -519,6 +534,94 @@
                 errorBox.style.display = 'none';
             }
         });
+
+        function friendlyEffectDescription(effect) {
+            const effectDescriptions = {
+                'growthBoost': 'Growth Boost',
+                'waterRetain': 'Water Retention',
+                'harvestBoost': 'Harvest Boost',
+                'weedPrevention': 'Weed Prevention',
+                'qualityBoost': 'Quality Boost'
+            
+            };
+            
+            return effectDescriptions[effect] || 'Unknown Effect';
+        }
+
+
+        // add code for effects
+        function applyBoostEffects(i, j) {
+            const cell = table.rows[i].cells[j];
+            const cellItem = cell.classList[0]; // Assuming only one class
+
+            if (cellItem && boostEffects[cellItem]) {
+                const boostEffect = boostEffects[cellItem];
+
+                const neighbors = [
+                    (i - 1 >= 0) ? table.rows[i - 1].cells[j] : null, 
+                    (j + 1 < table.rows[i].cells.length) ? table.rows[i].cells[j + 1] : null, 
+                    (j - 1 >= 0) ? table.rows[i].cells[j - 1] : null, 
+                    (i + 1 < table.rows.length) ? table.rows[i + 1].cells[j] : null
+                ];
+
+                neighbors.forEach(neighbor => {
+                    if (neighbor) {
+                        // Check for exclusion rules
+                        if (cellItem === 'apples' && boostEffect === 'growthBoost' &&
+                            isWithinGrid(neighbor.rowIndex, neighbor.cellIndex, i-1, i+1, j-1, j+1, 'apples')) {
+                            return;
+                        } else if (cellItem === 'blueberries' && boostEffect === 'growthBoost' &&
+                            isWithinGrid(neighbor.rowIndex, neighbor.cellIndex, i, i+1, j, j+1, 'blueberries')) {
+                            return;
+                        }
+
+                        const tooltip = neighbor.querySelector('.tooltip');
+                        const currentEffects = tooltip.dataset.effects ? tooltip.dataset.effects.split(',') : [];
+
+                        if (!currentEffects.includes(boostEffect)) {
+                            currentEffects.push(boostEffect);
+                            tooltip.dataset.effects = currentEffects.join(',');
+
+                            // Update tooltip content with user-friendly descriptions
+                            const friendlyEffects = currentEffects.map(effect => friendlyEffectDescription(effect));
+                            tooltip.textContent = `${tooltip.textContent} - Effects: ${friendlyEffects.join(', ')}`;
+                        }
+                    }
+                });
+            }
+        }
+
+        // We need a function to clear effects for recalculations.
+        // function clearBoostEffects(cell, i, j) {
+        //     const getAdjacentCells = () => {
+        //         return [
+        //             table.rows[i-1]?.cells[j],   // top
+        //             table.rows[i]?.cells[j-1],   // left
+        //             table.rows[i]?.cells[j+1],   // right
+        //             table.rows[i+1]?.cells[j]    // bottom
+        //         ].filter(Boolean);  // Remove undefined cells
+        //     };
+
+        //     const adjacentCells = getAdjacentCells();
+
+        //     Object.keys(boostEffects).forEach(effect => {
+        //         adjacentCells.forEach(adjCell => {
+        //             adjCell.removeAttribute(`data-${effect}`);
+        //             // Optionally: remove the effect from the tooltip
+        //             adjCell.querySelector('.tooltip').textContent = adjCell.querySelector('.tooltip').textContent.replace(` ${effect}`, '');
+        //         });
+        //     });
+        // }
+
+        function isWithinGrid(i, j, gridRowStart, gridRowEnd, gridColStart, gridColEnd, type) {
+            if (i < gridRowStart || i > gridRowEnd || j < gridColStart || j > gridColEnd) {
+                return false;
+            }
+            const cell = table.rows[i].cells[j];
+            return cell.classList.contains(type);
+        }
+
+
 
         // Function to generate a hash from the current layout
         function generateHash() {
